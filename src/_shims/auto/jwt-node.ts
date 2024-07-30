@@ -1,9 +1,8 @@
 import { Mux } from '../../index';
-import { KeyLike, SignJWT } from 'jose';
+import { KeyLike, SignJWT, importPKCS8 } from 'jose';
 import fs from 'fs';
 import { SignOptions, MuxJWTSignOptions } from '../../util/jwt-types';
 import { isKeyLike, keyFormatErrorMessage } from '../../util/jwt-util';
-import { createPrivateKey } from 'crypto';
 
 export type PrivateKey = Buffer | KeyLike;
 
@@ -38,12 +37,12 @@ export function getSigningKey(mux: Mux, opts: MuxJWTSignOptions): string {
 export async function getPrivateKey(mux: Mux, opts: MuxJWTSignOptions): Promise<KeyLike | Uint8Array> {
   const key = await getPrivateKeyHelper(mux, opts);
   if (isKeyLike(key)) return key;
-  return createPrivateKey(key as any);
+  return importPKCS8(key, 'RS256');
 }
-async function getPrivateKeyHelper(mux: Mux, opts: MuxJWTSignOptions): Promise<string | KeyLike | Buffer> {
+async function getPrivateKeyHelper(mux: Mux, opts: MuxJWTSignOptions): Promise<string | KeyLike> {
   let key;
   if (opts.keySecret) {
-    key = opts.keySecret;
+    key = opts.keySecret.toString();
   } else if (opts.keyFilePath) {
     key = await fs.promises.readFile(opts.keyFilePath, 'utf8');
   } else if (mux.jwtPrivateKey) {
